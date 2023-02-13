@@ -21,6 +21,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.CollectionUtils;
+import org.apache.dubbo.common.utils.ConcurrentHashMapUtils;
 import org.apache.dubbo.common.utils.ConcurrentHashSet;
 import org.apache.dubbo.common.utils.UrlUtils;
 import org.apache.dubbo.registry.NotifyListener;
@@ -157,7 +158,7 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
     public void doRegister(URL url) {
         try {
             checkDestroyed();
-            zkClient.create(toUrlPath(url), url.getParameter(DYNAMIC_KEY, true));
+            zkClient.create(toUrlPath(url), url.getParameter(DYNAMIC_KEY, true), false);
         } catch (Throwable e) {
             throw new RpcException("Failed to register " + url + " to zookeeper " + getUrl() + ", cause: " + e.getMessage(), e);
         }
@@ -180,9 +181,9 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
             if (ANY_VALUE.equals(url.getServiceInterface())) {
                 String root = toRootPath();
                 boolean check = url.getParameter(CHECK_KEY, false);
-                ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.computeIfAbsent(url, k -> new ConcurrentHashMap<>());
+                ConcurrentMap<NotifyListener, ChildListener> listeners = ConcurrentHashMapUtils.computeIfAbsent(zkListeners, url, k -> new ConcurrentHashMap<>());
 
-                ChildListener zkListener = listeners.computeIfAbsent(listener, k -> (parentPath, currentChildren) -> {
+                ChildListener zkListener = ConcurrentHashMapUtils.computeIfAbsent(listeners, listener, k -> (parentPath, currentChildren) -> {
                     for (String child : currentChildren) {
                         child = URL.decode(child);
                         if (!anyServices.contains(child)) {
@@ -193,7 +194,7 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
                     }
                 });
 
-                zkClient.create(root, false);
+                zkClient.create(root, false, true);
 
                 List<String> services = zkClient.addChildListener(root, zkListener);
                 if (CollectionUtils.isNotEmpty(services)) {
@@ -219,15 +220,15 @@ public class ZookeeperRegistry extends CacheableFailbackRegistry {
                             /dubbo/[service name]/routers
                     */
                     for (String path : toCategoriesPath(url)) {
-                        ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.computeIfAbsent(url, k -> new ConcurrentHashMap<>());
-                        ChildListener zkListener = listeners.computeIfAbsent(listener, k -> new RegistryChildListenerImpl(url, k, latch));
+                        ConcurrentMap<NotifyListener, ChildListener> listeners = ConcurrentHashMapUtils.computeIfAbsent(zkListeners, url, k -> new ConcurrentHashMap<>());
+                        ChildListener zkListener = ConcurrentHashMapUtils.computeIfAbsent(listeners, listener, k -> new RegistryChildListenerImpl(url, k, latch));
 
                         if (zkListener instanceof RegistryChildListenerImpl) {
                             ((RegistryChildListenerImpl) zkListener).setLatch(latch);
                         }
 
                         // create "directories".
-                        zkClient.create(path, false);
+                        zkClient.create(path, false, true);
 
                         // Add children (i.e. service items).
                         List<String> children = zkClient.addChildListener(path, zkListener);

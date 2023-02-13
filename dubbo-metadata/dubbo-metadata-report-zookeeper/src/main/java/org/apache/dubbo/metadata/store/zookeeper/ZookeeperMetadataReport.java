@@ -20,6 +20,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.config.configcenter.ConfigItem;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
+import org.apache.dubbo.common.utils.ConcurrentHashMapUtils;
 import org.apache.dubbo.common.utils.JsonUtils;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.metadata.MappingChangedEvent;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.apache.dubbo.common.constants.CommonConstants.PATH_SEPARATOR;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.REGISTRY_ZOOKEEPER_EXCEPTION;
@@ -62,7 +64,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
 
     ZookeeperClient zkClient;
 
-    private Map<String, MappingDataListener> casListenerMap = new ConcurrentHashMap<>();
+    private ConcurrentMap<String, MappingDataListener> casListenerMap = new ConcurrentHashMap<>();
 
 
     public ZookeeperMetadataReport(URL url, ZookeeperTransporter zookeeperTransporter) {
@@ -97,7 +99,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
 
     @Override
     protected void doSaveMetadata(ServiceMetadataIdentifier metadataIdentifier, URL url) {
-        zkClient.create(getNodePath(metadataIdentifier), URL.encode(url.toFullString()), false);
+        zkClient.createOrUpdate(getNodePath(metadataIdentifier), URL.encode(url.toFullString()), false);
     }
 
     @Override
@@ -116,7 +118,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
 
     @Override
     protected void doSaveSubscriberData(SubscriberMetadataIdentifier subscriberMetadataIdentifier, String urls) {
-        zkClient.create(getNodePath(subscriberMetadataIdentifier), urls, false);
+        zkClient.createOrUpdate(getNodePath(subscriberMetadataIdentifier), urls, false);
     }
 
     @Override
@@ -130,7 +132,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
     }
 
     private void storeMetadata(MetadataIdentifier metadataIdentifier, String v) {
-        zkClient.create(getNodePath(metadataIdentifier), v, false);
+        zkClient.createOrUpdate(getNodePath(metadataIdentifier), v, false);
     }
 
     String getNodePath(BaseMetadataIdentifier metadataIdentifier) {
@@ -141,7 +143,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
     public void publishAppMetadata(SubscriberMetadataIdentifier identifier, MetadataInfo metadataInfo) {
         String path = getNodePath(identifier);
         if (StringUtils.isBlank(zkClient.getContent(path)) && StringUtils.isNotEmpty(metadataInfo.getContent())) {
-            zkClient.create(path, metadataInfo.getContent(), false);
+            zkClient.createOrUpdate(path, metadataInfo.getContent(), false);
         }
     }
 
@@ -162,7 +164,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
     @Override
     public Set<String> getServiceAppMapping(String serviceKey, MappingListener listener, URL url) {
         String path = buildPathKey(DEFAULT_MAPPING_GROUP, serviceKey);
-        MappingDataListener mappingDataListener = casListenerMap.computeIfAbsent(path, _k -> {
+        MappingDataListener mappingDataListener = ConcurrentHashMapUtils.computeIfAbsent(casListenerMap, path, _k -> {
             MappingDataListener newMappingListener = new MappingDataListener(serviceKey, path);
             zkClient.addDataListener(path, newMappingListener);
             return newMappingListener;
@@ -198,7 +200,7 @@ public class ZookeeperMetadataReport extends AbstractMetadataReport {
                 throw new IllegalArgumentException("zookeeper publishConfigCas requires stat type ticket");
             }
             String pathKey = buildPathKey(group, key);
-            zkClient.createOrUpdate(pathKey, content, false, ticket == null ? 0 : ((Stat) ticket).getVersion());
+            zkClient.createOrUpdate(pathKey, content, false, ticket == null ? null : ((Stat) ticket).getVersion());
             return true;
         } catch (Exception e) {
             logger.warn(REGISTRY_ZOOKEEPER_EXCEPTION, "", "", "zookeeper publishConfigCas failed.", e);

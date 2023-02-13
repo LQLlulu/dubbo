@@ -17,12 +17,12 @@
 
 package org.apache.dubbo.common.constants;
 
-import org.apache.dubbo.common.URL;
-
 import java.net.NetworkInterface;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
+
+import org.apache.dubbo.common.URL;
 
 public interface CommonConstants {
     String DUBBO = "dubbo";
@@ -42,6 +42,10 @@ public interface CommonConstants {
     String METADATA_SERVICE_PORT_KEY = "metadata-service-port";
 
     String METADATA_SERVICE_PROTOCOL_KEY = "metadata-service-protocol";
+
+    String METRICS_SERVICE_PORT_KEY = "metrics-service-port";
+
+    String METRICS_SERVICE_PROTOCOL_KEY = "metrics-service-protocol";
 
     String LIVENESS_PROBE_KEY = "liveness-probe";
 
@@ -217,6 +221,8 @@ public interface CommonConstants {
 
     String DUMP_DIRECTORY = "dump.directory";
 
+    String DUMP_ENABLE = "dump.enable";
+
     String CLASSIFIER_KEY = "classifier";
 
     String VERSION_KEY = "version";
@@ -361,6 +367,13 @@ public interface CommonConstants {
      */
     String REGISTRY_LOCAL_FILE_CACHE_ENABLED = "file.cache";
 
+    String METADATA_INFO_CACHE_EXPIRE_KEY = "metadata-info-cache.expire";
+
+    int DEFAULT_METADATA_INFO_CACHE_EXPIRE = 10 * 60 * 1000;
+
+    String METADATA_INFO_CACHE_SIZE_KEY = "metadata-info-cache.size";
+
+    int DEFAULT_METADATA_INFO_CACHE_SIZE = 16;
 
     /**
      * The limit of callback service instances for one interface on every client
@@ -421,6 +434,10 @@ public interface CommonConstants {
     String ENABLE_NATIVE_JAVA_GENERIC_SERIALIZE = "dubbo.security.serialize.generic.native-java-enable";
 
     String SERIALIZE_BLOCKED_LIST_FILE_PATH = "security/serialize.blockedlist";
+
+    String SERIALIZE_ALLOW_LIST_FILE_PATH = "security/serialize.allowlist";
+
+    String SERIALIZE_CHECK_STATUS_KEY = "dubbo.application.serialize-check-status";
 
     String QOS_LIVE_PROBE_EXTENSION = "dubbo.application.liveness-probe";
 
@@ -580,5 +597,32 @@ public interface CommonConstants {
      * @since 3.1.0
      */
     String UNLOAD_CLUSTER_RELATED = "unloadClusterRelated";
+
+
+    String FLOW_CONTROL_KEY = "flowcontrol";
+    String STATIC_FLOW_CONTROL_KEY = "staticflowcontrol";
+    String STATIC_FLOW_CONTROL = "staticFlowControl";
+    String DEFAULT_FLOW_CONTROL = "heuristicSmoothingFlowControl";
+
+
+    /**
+     * used for thread isolation between services
+     */
+    String SERVICE_EXECUTOR = "service-executor";
+    String EXECUTOR_MANAGEMENT_MODE = "executor-management-mode";
+    String EXECUTOR_MANAGEMENT_MODE_DEFAULT = "default";
+    String EXECUTOR_MANAGEMENT_MODE_ISOLATION = "isolation";
+
+
+    /**
+     *
+     * used in JVMUtil.java ,Control stack print lines, default is 32 lines
+     *
+     */
+    String DUBBO_JSTACK_MAXLINE = "dubbo.jstack-dump.max-line";
+
+
+    String ENCODE_IN_IO_THREAD_KEY = "encode.in.io";
+    boolean DEFAULT_ENCODE_IN_IO_THREAD = false;
 
 }
